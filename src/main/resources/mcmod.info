@@ -1,0 +1,16 @@
+[
+{
+  "modid": "entitypurger",
+  "name": "Entity Purger",
+  "description": "Automatically purges entities based on configuration to reduce lag.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "https://www.curseforge.com/minecraft/mc-mods/entity-purger",
+  "updateUrl": "",
+  "authorList": ["Theofficialwicked/Wicked7000"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]

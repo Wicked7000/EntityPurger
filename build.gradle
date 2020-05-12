@@ -1,0 +1,59 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven { url = "http://files.minecraftforge.net/maven" }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath "com.github.jengelman.gradle.plugins:shadow:4.0.4"
+    }
+}
+apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: "com.github.johnrengelman.shadow"
+
+version = "1.2"
+group = "com.wicked.entitypurger"
+archivesBaseName = "entitypurger"
+
+sourceCompatibility = targetCompatibility = '1.8'
+compileJava {
+    sourceCompatibility = targetCompatibility = '1.8'
+}
+
+minecraft {
+    version = "1.12.2-14.23.5.2768"
+    runDir = "run"
+    mappings = "snapshot_20171003"
+}
+
+dependencies {
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0'
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        include 'config.json'
+                
+        expand 'version':project.version, 'mcversion':project.minecraft.version
+    }
+}
+
+shadowJar {
+    exclude "module-info.class" //To not cause issues with Java9 built modules
+
+    relocate "com.fasterxml.jackson.core", "com.wicked.fasterxml.jackson.core"
+    relocate "com.fasterxml.jackson.databind", "com.wicked.fasterxml.jackson.databind"
+    relocate "com.fasterxml.jackson.annotation", "com.wicked.fasterxml.jackson.annotation"
+
+    Jar jarConfig = project.getTasks().getByName("jar")
+    println(jarConfig.getArchiveName())
+    archiveName(jarConfig.getArchiveName())
+}
+
+jar.dependsOn(shadowJar)
+jar.enabled = false;
