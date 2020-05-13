@@ -28,10 +28,6 @@ public class EntityHelper {
         return entity instanceof EntityPlayer;
     }
 
-    public static boolean isEntityVillager(Entity entity){
-        return entity instanceof EntityVillager;
-    }
-
     public static boolean isEntityTamed(Entity entity){
         if(entity instanceof EntityTameable){
             EntityTameable tameable = (EntityTameable)entity;

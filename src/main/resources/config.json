@@ -1,10 +1,8 @@
 {
     "version": "1.2",
-    "logging": true,
-    "whitelist": [],
-    "blacklist": [
-        "net.minecraft.entity.item.EntityItem"
-    ],
+    "logging": false,
+    "whitelist": ["net.minecraft.entity.passive.*", "net.minecraft.entity.item.EntityXPOrb"],
+    "blacklist": [],
     "defaultThreshold": 100,
     "defaultLifetimeSeconds": 20,
     "checkTimeSeconds": 20,
@@ -14,6 +12,11 @@
             "entityId": "net.minecraft.entity.item.EntityXPOrb",
             "useThreshold": false,
             "lifetime": 120
+        },
+        {
+            "entityId": "net.minecraft.entity.passive.*",
+            "useThreshold": true,
+            "threshold": 1
         }
     ]
 }

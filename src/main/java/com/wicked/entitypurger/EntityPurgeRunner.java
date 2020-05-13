@@ -54,7 +54,7 @@ public class EntityPurgeRunner {
                 entityIdx += 1;
             }
 
-            if(configManager.isLoggingEnabled()){
+            if(configManager.isLoggingEnabled() && amountKilled > 0){
                 logger.info(String.format("Removed %d entities that went over the threshold %s", amountKilled, entityKey));
             }
         }else if(!entitySettings.useThreshold){
@@ -67,7 +67,7 @@ public class EntityPurgeRunner {
                 }
             }
 
-            if(configManager.isLoggingEnabled()){
+            if(configManager.isLoggingEnabled() && amountKilled > 0){
                 logger.info(String.format("Removed %d entities that 'expired' their lifetime %s", amountKilled, entityKey));
             }
         }

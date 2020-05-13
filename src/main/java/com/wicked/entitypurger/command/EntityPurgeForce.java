@@ -50,7 +50,7 @@ public class EntityPurgeForce extends CommandBase {
 
     @Override
     public void execute(@Nonnull MinecraftServer server,@Nonnull ICommandSender sender,@Nonnull String[] args) throws CommandException {
-        Map<String, Integer> purgedEntities = entityPurger.getEntityPurgeRunner().run();
+        Map<String, Integer> purgedEntities = entityPurger.getPurgeRunner().run();
         if(purgedEntities.size() > 0){
             TextComponentString enabled = new TextComponentString("Force purge result:\n");
             enabled.setStyle(new Style().setUnderlined(true).setColor(TextFormatting.GREEN));

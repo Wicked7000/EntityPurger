@@ -9,14 +9,13 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.Entity;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec2f;
+import net.minecraftforge.fml.client.registry.IRenderFactory;
 
 import javax.annotation.Nullable;
 
-public class RenderNameplate extends Render<EntityNameplate> {
+public class RenderNameplate extends Render<EntityNameplate> implements IRenderFactory<EntityNameplate> {
 
     public RenderNameplate(RenderManager renderManager) {
         super(renderManager);
@@ -68,5 +67,10 @@ public class RenderNameplate extends Render<EntityNameplate> {
     @Override
     protected ResourceLocation getEntityTexture(EntityNameplate entity) {
         return null;
+    }
+
+    @Override
+    public Render<? super EntityNameplate> createRenderFor(RenderManager manager) {
+        return new RenderNameplate(manager);
     }
 }

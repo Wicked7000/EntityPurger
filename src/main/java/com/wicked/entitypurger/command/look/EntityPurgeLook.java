@@ -77,7 +77,7 @@ public class EntityPurgeLook extends CommandBase {
             TextComponentString warning = new TextComponentString("This command will only execute if EntityPurger installed locally!");
             warning.setStyle(new Style().setColor(TextFormatting.GOLD));
             sender.sendMessage(warning);
-            EntityPurgerPacketHandler packetHandler = entityPurger.getEntityPurgerPacketHandler();
+            EntityPurgerPacketHandler packetHandler = entityPurger.getPacketHandler();
             Entity senderEntity = sender.getCommandSenderEntity();
 
             if(sender instanceof EntityPlayerMP){

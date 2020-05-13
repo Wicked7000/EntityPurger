@@ -2,20 +2,18 @@ package com.wicked.entitypurger.command.look;
 
 import com.wicked.entitypurger.EntityHelper;
 import com.wicked.entitypurger.EntityPurger;
+import com.wicked.entitypurger.EntityPurgerTaskManager;
 import com.wicked.entitypurger.configuration.ConfigManager;
 import com.wicked.entitypurger.entity.EntityNameplate;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
-import net.minecraftforge.fml.relauncher.Side;
 import org.apache.logging.log4j.Logger;
 
 import java.util.*;
@@ -24,13 +22,18 @@ public class EntityPurgerLookHandler {
     private static final float DISTANCE_TO_SPAWN_NAMEPLATE = 10f;
 
     private final EntityPurger entityPurger;
+    private final EntityPurgerTaskManager taskManager;
     private final ConfigManager configManager;
     private final Minecraft minecraftInstance;
     private final Logger logger;
 
     private final Map<Integer, EntityNameplate> nameplates;
 
-    public EntityPurgerLookHandler(ConfigManager configManager, EntityPurger entityPurger, Logger logger){
+    public EntityPurgerLookHandler(ConfigManager configManager,
+                                   EntityPurgerTaskManager taskManager,
+                                   EntityPurger entityPurger,
+                                   Logger logger){
+        this.taskManager = taskManager;
         this.configManager = configManager;
         this.entityPurger = entityPurger;
         this.logger = logger;
@@ -95,7 +98,7 @@ public class EntityPurgerLookHandler {
     }
 
     public void purgeAllNameplates(){
-        minecraftInstance.addScheduledTask(() -> {
+        taskManager.registerTask(() -> {
             List<Integer> toRemove = new ArrayList<>();
             for(Integer entityId : nameplates.keySet()){
                 EntityNameplate nameplate = nameplates.get(entityId);
@@ -112,9 +115,7 @@ public class EntityPurgerLookHandler {
     @SubscribeEvent
     public void runnerTimer(TickEvent.ClientTickEvent clientTickEvent){
         if(configManager.isLookMode() && entityPurger.getSide().isClient()){
-            minecraftInstance.addScheduledTask(() -> {
-                run(minecraftInstance.player);
-            });
+            run(minecraftInstance.player);
         }
     }
 }

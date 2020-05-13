@@ -14,9 +14,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class ConfigManager {
+    private static final String DEFAULT_CONFIG_NAME = "config.json";
     private static final String CONFIG_NAME = "entitypurger.json";
 
     private final ObjectMapper objectMapper;
@@ -44,15 +47,15 @@ public class ConfigManager {
         this.objectMapper =  new ObjectMapper();
 
         createDefaultConfigIfNeeded();
-        JsonNode config = safeReadConfig().getConfiguration();
-        if(Objects.isNull(config)){
-            throw new ConfigException("EntityPurger: Default configuration could not be loaded!");
+        ConfigLoadResult config = safeReadConfig();
+        if(!config.isSuccessful()){
+            throw new ConfigException(String.format("Error reading configuration file: %s", config.getErrorMessage()));
         }
 
         defaultEntitySettings = new EntitySettings(defaultThreshold, true, defaultLifetime, "*");
-        ConfigLoadResult result = loadDataFromConfiguration(config);
+        ConfigLoadResult result = loadDataFromConfiguration(config.getConfiguration());
         if(!result.isSuccessful()){
-            throw new ConfigException(String.format("EntityPurger: Failed to load config: %s, in config: %s", result.getErrorMessage(), CONFIG_NAME));
+            throw new ConfigException(String.format("Failed to load config: %s, in config: %s", result.getErrorMessage(), CONFIG_NAME));
         }
     }
 
@@ -65,7 +68,7 @@ public class ConfigManager {
     }
 
     private void createDefaultConfigIfNeeded(){
-        InputStream configDefaultRaw = getClass().getClassLoader().getResourceAsStream("config.json");
+        InputStream configDefaultRaw = getClass().getClassLoader().getResourceAsStream(DEFAULT_CONFIG_NAME);
         if(configDefaultRaw != null){
             List<String> defaultLines = new BufferedReader(new InputStreamReader(configDefaultRaw)).lines().collect(Collectors.toList());
 
@@ -98,10 +101,8 @@ public class ConfigManager {
         try{
             return new ConfigLoadResult(true, objectMapper.readTree(configFileRaw), null);
         } catch(IOException userConfigError){
-            userConfigError.printStackTrace();
-            logger.error("Unable to load user/saved config, reverting to internal default config");
             try{
-                InputStream configDefaultRaw = getClass().getClassLoader().getResourceAsStream(CONFIG_NAME);
+                InputStream configDefaultRaw = getClass().getClassLoader().getResourceAsStream(DEFAULT_CONFIG_NAME);
                 return new ConfigLoadResult(false, objectMapper.readTree(configDefaultRaw), userConfigError.getMessage());
             }catch(IOException defaultConfigError){
                 logger.fatal("Unable to load default config!");
@@ -144,10 +145,10 @@ public class ConfigManager {
         }
     }
 
-    private Map<String, EntitySettings> getEntitySettings(JsonNode node){
+    private Map<String,EntitySettings> getEntitySettings(JsonNode node){
         try{
             List<EntitySettings> entitySettings = objectMapper.readValue(node.get("entitySettings").toString(), TypeFactory.defaultInstance().constructCollectionType(List.class, EntitySettings.class));
-            return entitySettings.stream().collect(Collectors.toMap(EntitySettings::getEntityId, setting -> setting));
+            return entitySettings.stream().collect(Collectors.toMap((settings->settings.entityId),(settings->settings)));
         }catch(JsonProcessingException e){
             e.printStackTrace();
             return new HashMap<>();
@@ -173,12 +174,19 @@ public class ConfigManager {
     }
 
     public ConfigLoadResult reload(){
-        ConfigLoadResult loadResult = safeReadConfig();
-        JsonNode config = loadResult.getConfiguration();
+        ConfigLoadResult configRead = safeReadConfig();
+        ConfigLoadResult dataLoad = null;
+
+        JsonNode config = configRead.getConfiguration();
         if(Objects.nonNull(config)){
-            return loadDataFromConfiguration(loadResult.getConfiguration());
+            dataLoad = loadDataFromConfiguration(configRead.getConfiguration());
         }
-        return loadResult;
+
+        if(!configRead.isSuccessful()){
+            return configRead;
+        }
+
+        return dataLoad;
     }
 
     public void resetState(){
@@ -203,7 +211,18 @@ public class ConfigManager {
     }
 
     public EntitySettings getSettingsForEntity(String entityId) {
-        return entitySettings.getOrDefault(entityId, defaultEntitySettings);
+        EntitySettings settings = entitySettings.getOrDefault(entityId, null);
+        if(Objects.isNull(settings)){
+            for(String entityKey : entitySettings.keySet()){
+                Pattern pattern = Pattern.compile(entityKey);
+                Matcher matcher = pattern.matcher(entityId);
+                if(matcher.matches()){
+                    return entitySettings.get(entityKey);
+                }
+            }
+        }
+
+        return defaultEntitySettings;
     }
 
     public boolean canPurgeTamedEntities() {
@@ -224,11 +243,6 @@ public class ConfigManager {
 
     public boolean isLookMode() {
         return lookMode;
-    }
-
-    @SubscribeEvent
-    public void onServerDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent clientDisconnectionFromServerEvent){
-        resetState();
     }
 }
 

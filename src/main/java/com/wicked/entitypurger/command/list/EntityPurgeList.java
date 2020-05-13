@@ -63,28 +63,30 @@ public class EntityPurgeList extends CommandBase {
             DimensionType type = DimensionManager.getProviderType(worldId);
             List<EntitySummary> entities = EntityHelper.buildListOfCurrentEntities(world);
 
-            TextComponentString worldText;
-            if(Objects.nonNull(type)){
-                worldText = new TextComponentString(String.format("World: %s", type.getName()));
+            if(entities.size() > 0){
+                TextComponentString worldText;
+                if(Objects.nonNull(type)){
+                    worldText = new TextComponentString(String.format("World: %s", type.getName()));
 
-            }else{
-                worldText = new TextComponentString("World: ??");
-            }
-            worldText.setStyle(new Style().setColor(TextFormatting.BOLD).setUnderlined(true));
-            sender.sendMessage(worldText);
+                }else{
+                    worldText = new TextComponentString("World: ??");
+                }
+                worldText.setStyle(new Style().setColor(TextFormatting.BOLD).setUnderlined(true));
+                sender.sendMessage(worldText);
 
-            for(int summaryIdx = 0; summaryIdx < entities.size(); summaryIdx++){
-                EntitySummary summary = entities.get(summaryIdx);
-                Entity entityType = summary.getEntity();
+                for(int summaryIdx = 0; summaryIdx < entities.size(); summaryIdx++){
+                    EntitySummary summary = entities.get(summaryIdx);
+                    Entity entityType = summary.getEntity();
 
-                String newLine = summaryIdx == entities.size()-1 ? "\n" : "";
+                    String newLine = summaryIdx == entities.size()-1 ? "\n" : "";
 
-                if(!EntityHelper.isPlayer(entityType) && !EntityHelper.isNameplate(entityType)){
-                    TextComponentString entityAmount = new TextComponentString(
-                            String.format("%s (%d)%s",
-                                    summary.getEntityType(), summary.getCount(), newLine));
-                    entityAmount.setStyle(new Style().setColor(TextFormatting.GRAY));
-                    sender.sendMessage(entityAmount);
+                    if(!EntityHelper.isPlayer(entityType) && !EntityHelper.isNameplate(entityType)){
+                        TextComponentString entityAmount = new TextComponentString(
+                                String.format("%s (%d)%s",
+                                        summary.getEntityType(), summary.getCount(), newLine));
+                        entityAmount.setStyle(new Style().setColor(TextFormatting.GRAY));
+                        sender.sendMessage(entityAmount);
+                    }
                 }
             }
         }
