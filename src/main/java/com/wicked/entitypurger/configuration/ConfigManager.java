@@ -9,6 +9,7 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import org.apache.logging.log4j.Logger;
 
+import javax.swing.text.html.parser.Entity;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -32,7 +33,10 @@ public class ConfigManager {
     private boolean loggingEnabled = true;
     private int defaultThreshold = 20;
     private int defaultLifetime = 120;
+
     private Map<String, EntitySettings> entitySettings;
+    private List<EntitySettings> orderedEntitySettings;
+
     private int checkTimeSeconds = 20;
     private boolean purgeTamedEntities = false;
     private EntitySettings defaultEntitySettings;
@@ -145,13 +149,12 @@ public class ConfigManager {
         }
     }
 
-    private Map<String,EntitySettings> getEntitySettings(JsonNode node){
+    private List<EntitySettings> getEntitySettings(JsonNode node){
         try{
-            List<EntitySettings> entitySettings = objectMapper.readValue(node.get("entitySettings").toString(), TypeFactory.defaultInstance().constructCollectionType(List.class, EntitySettings.class));
-            return entitySettings.stream().collect(Collectors.toMap((settings->settings.entityId),(settings->settings)));
+            return objectMapper.readValue(node.get("entitySettings").toString(), TypeFactory.defaultInstance().constructCollectionType(List.class, EntitySettings.class));
         }catch(JsonProcessingException e){
             e.printStackTrace();
-            return new HashMap<>();
+            return new ArrayList<>();
         }
     }
 
@@ -162,7 +165,10 @@ public class ConfigManager {
             defaultThreshold = safeGetInt(safeGetProperty(config,"defaultThreshold"), "defaultThreshold");
             defaultLifetime = safeGetInt(safeGetProperty(config,"defaultLifetimeSeconds"), "defaultLifetimeSeconds");
             loggingEnabled = safeGetBoolean(safeGetProperty(config,"logging"), "logging");
-            entitySettings = getEntitySettings(config);
+
+            orderedEntitySettings = getEntitySettings(config);
+            entitySettings = orderedEntitySettings.stream().collect(Collectors.toMap((settings->settings.entityId),(settings->settings)));
+
             checkTimeSeconds = safeGetInt(safeGetProperty(config,"checkTimeSeconds"), "checkTimeSeconds");
             purgeTamedEntities = safeGetBoolean(safeGetProperty(config,"purgeTamedEntities"), "purgeTamedEntities");
 
@@ -220,6 +226,8 @@ public class ConfigManager {
                     return entitySettings.get(entityKey);
                 }
             }
+        }else{
+            return settings;
         }
 
         return defaultEntitySettings;
