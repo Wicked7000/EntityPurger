@@ -217,17 +217,12 @@ public class ConfigManager {
     }
 
     public EntitySettings getSettingsForEntity(String entityId) {
-        EntitySettings settings = entitySettings.getOrDefault(entityId, null);
-        if(Objects.isNull(settings)){
-            for(String entityKey : entitySettings.keySet()){
-                Pattern pattern = Pattern.compile(entityKey);
-                Matcher matcher = pattern.matcher(entityId);
-                if(matcher.matches()){
-                    return entitySettings.get(entityKey);
-                }
+        for(String entityKey : entitySettings.keySet()){
+            Pattern pattern = Pattern.compile(entityKey);
+            Matcher matcher = pattern.matcher(entityId);
+            if(matcher.matches()){
+                return entitySettings.get(entityKey);
             }
-        }else{
-            return settings;
         }
 
         return defaultEntitySettings;
