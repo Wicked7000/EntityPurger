@@ -1,5 +1,5 @@
 {
-    "version": "1.2",
+    "version": "1.2.2",
     "logging": false,
     "whitelist": ["net.minecraft.entity.passive.*", "net.minecraft.entity.item.EntityXPOrb"],
     "blacklist": [],
@@ -7,6 +7,8 @@
     "defaultLifetimeSeconds": 20,
     "checkTimeSeconds": 20,
     "purgeTamedEntities": false,
+    "blacklistedChunksNearPlayer": 3,
+    "claimedChunksAreBlacklisted": true,
     "entitySettings": [
         {
             "entityId": "net.minecraft.entity.item.EntityXPOrb",

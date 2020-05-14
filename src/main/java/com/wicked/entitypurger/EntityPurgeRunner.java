@@ -3,7 +3,13 @@ package com.wicked.entitypurger;
 import com.wicked.entitypurger.command.list.EntitySummary;
 import com.wicked.entitypurger.configuration.ConfigManager;
 import com.wicked.entitypurger.configuration.EntitySettings;
+import com.wicked.entitypurger.integration.FTBUtilitiesIntegration;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -34,39 +40,93 @@ public class EntityPurgeRunner {
         entity.setDead();
     }
 
-    private Integer killEntityOfType(String entityKey, List<Entity> entitiesOfType){
+    private int killViaThreshold(int dimensionId, int amountOfEntity, EntitySettings entitySettings, List<Entity> entitiesOfType){
+        int amountKilled = 0;
+        int amountToKillToReachThreshold = amountOfEntity - entitySettings.threshold;
+
+        int entityIdx = 0;
+        while(amountKilled < amountToKillToReachThreshold && entityIdx < entitiesOfType.size() && amountOfEntity > 0){
+            Entity entity = entitiesOfType.get(entityIdx);
+            if(isChunkBlacklisted(dimensionId, entity)){
+                entityIdx++;
+                continue;
+            }
+            boolean entityTamed = EntityHelper.isEntityTamed(entity);
+            if ((configManager.canPurgeTamedEntities() || !entityTamed) && !EntityHelper.isEntityPlayer(entity)) {
+                killEntity(entity);
+                amountKilled++;
+            }
+
+            amountOfEntity--;
+            entityIdx++;
+        }
+
+        return amountKilled;
+    }
+
+    private int killViaTicksExisted(int dimensionId, EntitySettings entitySettings, List<Entity> entitiesOfType){
+        int amountKilled = 0;
+
+        for(Entity entity : entitiesOfType){
+            if(isChunkBlacklisted(dimensionId, entity)){
+                continue;
+            }
+            if (!EntityHelper.isEntityTamed(entity) && !EntityHelper.isEntityPlayer(entity)) {
+                if(entity.ticksExisted / TICKS_IN_SECOND > entitySettings.getLifetime()){
+                    killEntity(entity);
+                    amountKilled++;
+                }
+            }
+        }
+        return amountKilled;
+    }
+
+    private boolean isChunkBlacklisted(int dimensionId, Entity entity){
+        ChunkPos entityChunk = new ChunkPos(entity.getPosition());
+
+        FTBUtilitiesIntegration ftbUtilitiesIntegration = entityPurger.getFtbUtilitiesIntegration();
+        if(Objects.nonNull(ftbUtilitiesIntegration) && configManager.areClaimedChunksBlacklisted()){
+            if(ftbUtilitiesIntegration.isClaimedChunk(entityChunk, dimensionId)){
+                return true;
+            };
+        }
+
+        int chunkDistanceNearPlayer = configManager.getBlacklistedChunksNearPlayer();
+        if(entityPurger.getSide().isServer()){
+            MinecraftServer server = entityPurger.minecraftServer();
+            List<EntityPlayerMP> players = server.getPlayerList().getPlayers();
+            for(EntityPlayerMP player : players){
+                ChunkPos playerChunk = new ChunkPos(player.getPosition());
+                int chunkDistance = EntityHelper.getChunkDistance(entityChunk, playerChunk);
+                if(chunkDistance <= chunkDistanceNearPlayer){
+                    return true;
+                }
+            }
+        } else {
+            EntityPlayer player = (EntityPlayer)Minecraft.getMinecraft().getRenderViewEntity();
+            if(player != null){
+                ChunkPos playerChunk = new ChunkPos(player.getPosition());
+                int chunkDistance = EntityHelper.getChunkDistance(entityChunk, playerChunk);
+                return chunkDistance <= chunkDistanceNearPlayer;
+            }
+        }
+
+        return false;
+    }
+
+    private Integer killEntityOfType(int dimensionId, String entityKey, List<Entity> entitiesOfType){
         int amountOfEntity = entitiesOfType.size();
         EntitySettings entitySettings = configManager.getSettingsForEntity(entityKey);
 
         int amountKilled = 0;
         if(entitySettings.useThreshold && amountOfEntity > entitySettings.threshold){
-            int amountToKillToReachThreshold = amountOfEntity - entitySettings.threshold;
-
-            int entityIdx = 0;
-            while(amountKilled < amountToKillToReachThreshold && entityIdx < entitiesOfType.size() && amountOfEntity > 0){
-                Entity entity = entitiesOfType.get(entityIdx);
-                boolean entityTamed = EntityHelper.isEntityTamed(entity);
-                if ((configManager.canPurgeTamedEntities() || !entityTamed) && !EntityHelper.isEntityPlayer(entity)) {
-                    killEntity(entity);
-                    amountKilled += 1;
-                }
-                amountOfEntity -= 1;
-                entityIdx += 1;
-            }
-
+            amountKilled = killViaThreshold(dimensionId, amountOfEntity, entitySettings, entitiesOfType);
             if(configManager.isLoggingEnabled() && amountKilled > 0){
                 logger.info(String.format("Removed %d entities that went over the threshold %s", amountKilled, entityKey));
             }
-        }else if(!entitySettings.useThreshold){
-            for(Entity entity : entitiesOfType){
-                if (!EntityHelper.isEntityTamed(entity) && !EntityHelper.isEntityPlayer(entity)) {
-                    if(entity.ticksExisted / TICKS_IN_SECOND > entitySettings.getLifetime()){
-                        killEntity(entity);
-                        amountKilled += 1;
-                    }
-                }
-            }
 
+        }else if(!entitySettings.useThreshold){
+            amountKilled = killViaTicksExisted(dimensionId, entitySettings, entitiesOfType);
             if(configManager.isLoggingEnabled() && amountKilled > 0){
                 logger.info(String.format("Removed %d entities that 'expired' their lifetime %s", amountKilled, entityKey));
             }
@@ -93,8 +153,8 @@ public class EntityPurgeRunner {
         List<String> blacklist = configManager.getBlacklist();
         List<String> whitelist = configManager.getWhitelist();
 
-        for(int worldId : DimensionManager.getIDs()){
-            World world = DimensionManager.getWorld(worldId);
+        for(int dimensionId : DimensionManager.getIDs()){
+            World world = DimensionManager.getWorld(dimensionId);
 
             List<EntitySummary> entitySummaries = EntityHelper.buildListOfCurrentEntities(world);
             for(EntitySummary entitySummary : entitySummaries){
@@ -105,9 +165,9 @@ public class EntityPurgeRunner {
 
                 Integer purgedAmount = 0;
                 if(whitelist.size() > 0 && testMatch(whitelist, entityType)){
-                    purgedAmount = killEntityOfType(entityType, entitySummary.getEntities());
+                    purgedAmount = killEntityOfType(dimensionId, entityType, entitySummary.getEntities());
                 }else if(whitelist.size() == 0){
-                    purgedAmount = killEntityOfType(entityType, entitySummary.getEntities());
+                    purgedAmount = killEntityOfType(dimensionId, entityType, entitySummary.getEntities());
                 }
 
                 if(purgedAmount > 0){

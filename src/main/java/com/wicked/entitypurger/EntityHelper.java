@@ -6,6 +6,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.EntityTameable;
 import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
@@ -56,5 +57,9 @@ public class EntityHelper {
         entitySummaries.sort(Comparator.comparingInt(EntitySummary::getCount).reversed());
 
         return entitySummaries;
+    }
+
+    public static int getChunkDistance(ChunkPos chunk1, ChunkPos chunk2){
+        return (int)Math.sqrt(Math.pow(Math.abs(chunk2.x - chunk1.x), 2) + Math.pow(Math.abs(chunk2.z - chunk1.z), 2));
     }
 }

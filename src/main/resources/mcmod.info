@@ -8,6 +8,7 @@
   "url": "https://github.com/Wicked7000/EntityPurger",
   "updateUrl": "",
   "authorList": ["Wicked7000"],
+  "useDependencyInformation": true,
   "credits": "",
   "logoFile": "",
   "screenshots": [],

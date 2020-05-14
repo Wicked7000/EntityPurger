@@ -33,8 +33,9 @@ public class ConfigManager {
     private boolean loggingEnabled = true;
     private int defaultThreshold = 20;
     private int defaultLifetime = 120;
+    private int blacklistedChunksNearPlayer = 3;
+    private boolean claimedChunksAreBlacklisted = true;
 
-    private Map<String, EntitySettings> entitySettings;
     private List<EntitySettings> orderedEntitySettings;
 
     private int checkTimeSeconds = 20;
@@ -123,14 +124,16 @@ public class ConfigManager {
         return property;
     }
 
-    private boolean safeGetBoolean(JsonNode property, String propertyName) throws ConfigException{
+    private boolean safeGetBoolean(JsonNode config, String propertyName) throws ConfigException{
+        JsonNode property = safeGetProperty(config, propertyName);
         if(property.asToken().isBoolean()){
             return property.asBoolean();
         }
         throw new ConfigException(String.format("Expected true/false for property %s, got: %s", propertyName, property.toString()));
     }
 
-    private int safeGetInt(JsonNode property, String propertyName) throws ConfigException{
+    private int safeGetInt(JsonNode config, String propertyName) throws ConfigException{
+        JsonNode property = safeGetProperty(config, propertyName);
         if(property.asToken().isNumeric()){
             if(property.asText().contains(".")){
                 throw new ConfigException(String.format("Expected integer value for property %s, got: %s", propertyName, property.toString()));
@@ -162,15 +165,16 @@ public class ConfigManager {
         try{
             whitelist = getPropertyAsStringList(config, "whitelist");
             blacklist = getPropertyAsStringList(config, "blacklist");
-            defaultThreshold = safeGetInt(safeGetProperty(config,"defaultThreshold"), "defaultThreshold");
-            defaultLifetime = safeGetInt(safeGetProperty(config,"defaultLifetimeSeconds"), "defaultLifetimeSeconds");
-            loggingEnabled = safeGetBoolean(safeGetProperty(config,"logging"), "logging");
+            defaultThreshold = safeGetInt(config,"defaultThreshold");
+            defaultLifetime = safeGetInt(config,"defaultLifetimeSeconds");
+            loggingEnabled = safeGetBoolean(config,"logging");
+            blacklistedChunksNearPlayer = safeGetInt(config, "blacklistedChunksNearPlayer");
+            claimedChunksAreBlacklisted = safeGetBoolean(config, "claimedChunksAreBlacklisted");
 
             orderedEntitySettings = getEntitySettings(config);
-            entitySettings = orderedEntitySettings.stream().collect(Collectors.toMap((settings->settings.entityId),(settings->settings)));
 
-            checkTimeSeconds = safeGetInt(safeGetProperty(config,"checkTimeSeconds"), "checkTimeSeconds");
-            purgeTamedEntities = safeGetBoolean(safeGetProperty(config,"purgeTamedEntities"), "purgeTamedEntities");
+            checkTimeSeconds = safeGetInt(config, "checkTimeSeconds");
+            purgeTamedEntities = safeGetBoolean(config, "purgeTamedEntities");
 
             defaultEntitySettings = new EntitySettings(defaultThreshold, true, defaultLifetime, "*");
             return new ConfigLoadResult(true, config, null);
@@ -217,11 +221,11 @@ public class ConfigManager {
     }
 
     public EntitySettings getSettingsForEntity(String entityId) {
-        for(String entityKey : entitySettings.keySet()){
-            Pattern pattern = Pattern.compile(entityKey);
+        for(EntitySettings entitySettings : orderedEntitySettings){
+            Pattern pattern = Pattern.compile(entitySettings.entityId);
             Matcher matcher = pattern.matcher(entityId);
             if(matcher.matches()){
-                return entitySettings.get(entityKey);
+                return entitySettings;
             }
         }
 
@@ -230,6 +234,14 @@ public class ConfigManager {
 
     public boolean canPurgeTamedEntities() {
         return purgeTamedEntities;
+    }
+
+    public int getBlacklistedChunksNearPlayer() {
+        return blacklistedChunksNearPlayer;
+    }
+
+    public boolean areClaimedChunksBlacklisted() {
+        return claimedChunksAreBlacklisted;
     }
 
     public void setEnabled(boolean enabled) {
