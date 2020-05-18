@@ -78,7 +78,7 @@ public class EntityPurger
 
     @EventHandler
     public void postInit(FMLPostInitializationEvent event){
-        //loadIntegrations();
+        loadIntegrations();
     }
 
     @EventHandler
