@@ -122,17 +122,18 @@ public class EntityPurgeRunner {
         EntitySettings entitySettings = configManager.getSettingsForEntity(entityKey);
 
         int amountKilled = 0;
-        if(Objects.nonNull(entitySettings.getThreshold()) && amountOfEntity > entitySettings.getThreshold()){
-            amountKilled = killViaThreshold(dimensionId, amountOfEntity, entitySettings, entitiesOfType);
-            if(configManager.isLoggingEnabled() && amountKilled > 0){
-                logger.info(String.format("Removed %d entities that went over the threshold %s", amountKilled, entityKey));
-            }
-
-        }else if(Objects.nonNull(entitySettings.getLifetime())){
+        if(Objects.nonNull(entitySettings.getLifetime())){
             amountKilled = killViaTicksExisted(dimensionId, entitySettings, entitiesOfType);
             if(configManager.isLoggingEnabled() && amountKilled > 0){
                 logger.info(String.format("Removed %d entities that 'expired' their lifetime %s", amountKilled, entityKey));
             }
+        }
+        if(Objects.nonNull(entitySettings.getThreshold()) && (amountOfEntity - amountKilled) > entitySettings.getThreshold()){
+            amountKilled += killViaThreshold(dimensionId, amountOfEntity, entitySettings, entitiesOfType);
+            if(configManager.isLoggingEnabled() && amountKilled > 0){
+                logger.info(String.format("Removed %d entities that went over the threshold %s", amountKilled, entityKey));
+            }
+
         }
 
         return amountKilled;
