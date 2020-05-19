@@ -1,19 +1,20 @@
 {
-    "version": "1.2.2.1",
+    "version": "1.2.3",
     "logging": false,
     "whitelist": ["net.minecraft.entity.item.EntityXPOrb"],
     "blacklist": [],
-    "defaultThreshold": 100,
-    "defaultLifetimeSeconds": 20,
+    "defaultThreshold": 20,
     "checkTimeSeconds": 20,
     "purgeTamedEntities": false,
-    "blacklistedChunksNearPlayer": 3,
+    "blacklistedChunksNearPlayer": 2,
     "claimedChunksAreBlacklisted": true,
     "entitySettings": [
         {
             "entityId": "net.minecraft.entity.item.EntityXPOrb",
-            "useThreshold": false,
-            "lifetime": 120
+            "threshold": 100,
+            "lifetime": 120,
+            "overrideClaimedChunk": true,
+            "overridePlayerChunk": true
         }
     ]
 }

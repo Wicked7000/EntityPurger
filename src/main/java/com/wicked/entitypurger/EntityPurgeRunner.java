@@ -42,12 +42,12 @@ public class EntityPurgeRunner {
 
     private int killViaThreshold(int dimensionId, int amountOfEntity, EntitySettings entitySettings, List<Entity> entitiesOfType){
         int amountKilled = 0;
-        int amountToKillToReachThreshold = amountOfEntity - entitySettings.threshold;
+        int amountToKillToReachThreshold = amountOfEntity - entitySettings.getThreshold();
 
         int entityIdx = 0;
         while(amountKilled < amountToKillToReachThreshold && entityIdx < entitiesOfType.size() && amountOfEntity > 0){
             Entity entity = entitiesOfType.get(entityIdx);
-            if(isChunkBlacklisted(dimensionId, entity)){
+            if(isChunkBlacklisted(dimensionId, entity, entitySettings)){
                 entityIdx++;
                 continue;
             }
@@ -68,7 +68,7 @@ public class EntityPurgeRunner {
         int amountKilled = 0;
 
         for(Entity entity : entitiesOfType){
-            if(isChunkBlacklisted(dimensionId, entity)){
+            if(isChunkBlacklisted(dimensionId, entity, entitySettings)){
                 continue;
             }
             if (!EntityHelper.isEntityTamed(entity) && !EntityHelper.isEntityPlayer(entity)) {
@@ -81,35 +81,38 @@ public class EntityPurgeRunner {
         return amountKilled;
     }
 
-    private boolean isChunkBlacklisted(int dimensionId, Entity entity){
+    private boolean isChunkBlacklisted(int dimensionId, Entity entity, EntitySettings entitySettings){
         ChunkPos entityChunk = new ChunkPos(entity.getPosition());
 
         FTBUtilitiesIntegration ftbUtilitiesIntegration = entityPurger.getFtbUtilitiesIntegration();
-        if(Objects.nonNull(ftbUtilitiesIntegration) && configManager.areClaimedChunksBlacklisted()){
+        if(Objects.nonNull(ftbUtilitiesIntegration) && configManager.areClaimedChunksBlacklisted() && !entitySettings.overrideClaimedChunk()){
             if(ftbUtilitiesIntegration.isClaimedChunk(entityChunk, dimensionId)){
                 return true;
             };
         }
 
         int chunkDistanceNearPlayer = configManager.getBlacklistedChunksNearPlayer();
-        if(entityPurger.getSide().isServer()){
-            MinecraftServer server = entityPurger.minecraftServer();
-            List<EntityPlayerMP> players = server.getPlayerList().getPlayers();
-            for(EntityPlayerMP player : players){
-                ChunkPos playerChunk = new ChunkPos(player.getPosition());
-                int chunkDistance = EntityHelper.getChunkDistance(entityChunk, playerChunk);
-                if(chunkDistance <= chunkDistanceNearPlayer){
-                    return true;
+        if(!entitySettings.isOverridePlayerChunk()){
+            if(entityPurger.getSide().isServer()){
+                MinecraftServer server = entityPurger.minecraftServer();
+                List<EntityPlayerMP> players = server.getPlayerList().getPlayers();
+                for(EntityPlayerMP player : players){
+                    ChunkPos playerChunk = new ChunkPos(player.getPosition());
+                    int chunkDistance = EntityHelper.getChunkDistance(entityChunk, playerChunk);
+                    if(chunkDistance <= chunkDistanceNearPlayer){
+                        return true;
+                    }
+                }
+            } else {
+                EntityPlayer player = (EntityPlayer)Minecraft.getMinecraft().getRenderViewEntity();
+                if(player != null){
+                    ChunkPos playerChunk = new ChunkPos(player.getPosition());
+                    int chunkDistance = EntityHelper.getChunkDistance(entityChunk, playerChunk);
+                    return chunkDistance <= chunkDistanceNearPlayer;
                 }
             }
-        } else {
-            EntityPlayer player = (EntityPlayer)Minecraft.getMinecraft().getRenderViewEntity();
-            if(player != null){
-                ChunkPos playerChunk = new ChunkPos(player.getPosition());
-                int chunkDistance = EntityHelper.getChunkDistance(entityChunk, playerChunk);
-                return chunkDistance <= chunkDistanceNearPlayer;
-            }
         }
+
 
         return false;
     }
@@ -119,13 +122,13 @@ public class EntityPurgeRunner {
         EntitySettings entitySettings = configManager.getSettingsForEntity(entityKey);
 
         int amountKilled = 0;
-        if(entitySettings.useThreshold && amountOfEntity > entitySettings.threshold){
+        if(Objects.nonNull(entitySettings.getThreshold()) && amountOfEntity > entitySettings.getThreshold()){
             amountKilled = killViaThreshold(dimensionId, amountOfEntity, entitySettings, entitiesOfType);
             if(configManager.isLoggingEnabled() && amountKilled > 0){
                 logger.info(String.format("Removed %d entities that went over the threshold %s", amountKilled, entityKey));
             }
 
-        }else if(!entitySettings.useThreshold){
+        }else if(Objects.nonNull(entitySettings.getLifetime())){
             amountKilled = killViaTicksExisted(dimensionId, entitySettings, entitiesOfType);
             if(configManager.isLoggingEnabled() && amountKilled > 0){
                 logger.info(String.format("Removed %d entities that 'expired' their lifetime %s", amountKilled, entityKey));

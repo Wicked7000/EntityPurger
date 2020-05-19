@@ -32,7 +32,6 @@ public class ConfigManager {
     private List<String> blacklist;
     private boolean loggingEnabled = true;
     private int defaultThreshold = 20;
-    private int defaultLifetime = 120;
     private int blacklistedChunksNearPlayer = 3;
     private boolean claimedChunksAreBlacklisted = true;
 
@@ -57,7 +56,7 @@ public class ConfigManager {
             throw new ConfigException(String.format("Error reading configuration file: %s", config.getErrorMessage()));
         }
 
-        defaultEntitySettings = new EntitySettings(defaultThreshold, true, defaultLifetime, "*");
+        defaultEntitySettings = new EntitySettings(defaultThreshold, null, "*", false, false);
         ConfigLoadResult result = loadDataFromConfiguration(config.getConfiguration());
         if(!result.isSuccessful()){
             throw new ConfigException(String.format("Failed to load config: %s, in config: %s", result.getErrorMessage(), CONFIG_NAME));
@@ -166,7 +165,6 @@ public class ConfigManager {
             whitelist = getPropertyAsStringList(config, "whitelist");
             blacklist = getPropertyAsStringList(config, "blacklist");
             defaultThreshold = safeGetInt(config,"defaultThreshold");
-            defaultLifetime = safeGetInt(config,"defaultLifetimeSeconds");
             loggingEnabled = safeGetBoolean(config,"logging");
             blacklistedChunksNearPlayer = safeGetInt(config, "blacklistedChunksNearPlayer");
             claimedChunksAreBlacklisted = safeGetBoolean(config, "claimedChunksAreBlacklisted");
@@ -176,7 +174,7 @@ public class ConfigManager {
             checkTimeSeconds = safeGetInt(config, "checkTimeSeconds");
             purgeTamedEntities = safeGetBoolean(config, "purgeTamedEntities");
 
-            defaultEntitySettings = new EntitySettings(defaultThreshold, true, defaultLifetime, "*");
+            defaultEntitySettings = new EntitySettings(defaultThreshold, null, "*", false, false);
             return new ConfigLoadResult(true, config, null);
         }catch(ConfigException e){
             return new ConfigLoadResult(false, config, e.getMessage());
@@ -222,7 +220,7 @@ public class ConfigManager {
 
     public EntitySettings getSettingsForEntity(String entityId) {
         for(EntitySettings entitySettings : orderedEntitySettings){
-            Pattern pattern = Pattern.compile(entitySettings.entityId);
+            Pattern pattern = Pattern.compile(entitySettings.getEntityId());
             Matcher matcher = pattern.matcher(entityId);
             if(matcher.matches()){
                 return entitySettings;
