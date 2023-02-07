@@ -40,6 +40,14 @@ public class EntityPurgeRunner {
         entity.setDead();
     }
 
+    private boolean canKillEntity(Entity entity){
+        boolean entityTamed = EntityHelper.isEntityTamed(entity);
+        boolean namedEntity = EntityHelper.isNamedEntity(entity);
+        boolean purgeTamedEntity = (configManager.canPurgeTamedEntities() || !entityTamed);
+        boolean purgeNamedEntity = (configManager.canPurgeNamedEntities() || !namedEntity);
+        return purgeNamedEntity && purgeTamedEntity && !EntityHelper.isEntityPlayer(entity);
+    }
+
     private int killViaThreshold(int dimensionId, int amountOfEntity, EntitySettings entitySettings, List<Entity> entitiesOfType){
         int amountKilled = 0;
         int amountToKillToReachThreshold = amountOfEntity - entitySettings.getThreshold();
@@ -51,8 +59,7 @@ public class EntityPurgeRunner {
                 entityIdx++;
                 continue;
             }
-            boolean entityTamed = EntityHelper.isEntityTamed(entity);
-            if ((configManager.canPurgeTamedEntities() || !entityTamed) && !EntityHelper.isEntityPlayer(entity)) {
+            if (canKillEntity(entity)) {
                 killEntity(entity);
                 amountKilled++;
             }
@@ -71,11 +78,9 @@ public class EntityPurgeRunner {
             if(isChunkBlacklisted(dimensionId, entity, entitySettings)){
                 continue;
             }
-            if (!EntityHelper.isEntityTamed(entity) && !EntityHelper.isEntityPlayer(entity)) {
-                if(entity.ticksExisted / TICKS_IN_SECOND > entitySettings.getLifetime()){
-                    killEntity(entity);
-                    amountKilled++;
-                }
+            if (canKillEntity(entity) && entity.ticksExisted / TICKS_IN_SECOND > entitySettings.getLifetime()) {
+                killEntity(entity);
+                amountKilled++;
             }
         }
         return amountKilled;
@@ -85,7 +90,7 @@ public class EntityPurgeRunner {
         ChunkPos entityChunk = new ChunkPos(entity.getPosition());
 
         FTBUtilitiesIntegration ftbUtilitiesIntegration = entityPurger.getFtbUtilitiesIntegration();
-        if(Objects.nonNull(ftbUtilitiesIntegration) && configManager.areClaimedChunksBlacklisted() && !entitySettings.overrideClaimedChunk()){
+        if(Objects.nonNull(ftbUtilitiesIntegration) && configManager.isFtbUtilsIntegrationEnabled() && configManager.areClaimedChunksBlacklisted() && !entitySettings.overrideClaimedChunk()){
             if(ftbUtilitiesIntegration.isClaimedChunk(entityChunk, dimensionId)){
                 return true;
             };
@@ -140,6 +145,10 @@ public class EntityPurgeRunner {
     }
 
     private boolean testMatch(List<String> list, String entityType){
+        if(entityType == null || entityType.isEmpty()){
+            return false;
+        }
+
         for(String str : list){
             Pattern pattern = Pattern.compile(str);
             Matcher matcher = pattern.matcher(entityType);
@@ -154,8 +163,8 @@ public class EntityPurgeRunner {
         Map<String, Integer> purgedEntities = new HashMap<>();
 
         currentTimer = 0;
-        List<String> blacklist = configManager.getBlacklist();
-        List<String> whitelist = configManager.getWhitelist();
+        List<String> blocklist = configManager.getBlocklist();
+        List<String> allowlist = configManager.getAllowList();
 
         for(int dimensionId : DimensionManager.getIDs()){
             World world = DimensionManager.getWorld(dimensionId);
@@ -163,14 +172,14 @@ public class EntityPurgeRunner {
             List<EntitySummary> entitySummaries = EntityHelper.buildListOfCurrentEntities(world);
             for(EntitySummary entitySummary : entitySummaries){
                 String entityType = entitySummary.getEntityType();
-                if(blacklist.size() > 0 && testMatch(blacklist, entityType)){
+                if(blocklist.size() > 0 && testMatch(blocklist, entityType)){
                     continue;
                 }
 
                 Integer purgedAmount = 0;
-                if(whitelist.size() > 0 && testMatch(whitelist, entityType)){
+                if(allowlist.size() > 0 && testMatch(allowlist, entityType)){
                     purgedAmount = killEntityOfType(dimensionId, entityType, entitySummary.getEntities());
-                }else if(whitelist.size() == 0){
+                }else if(allowlist.size() == 0){
                     purgedAmount = killEntityOfType(dimensionId, entityType, entitySummary.getEntities());
                 }
 

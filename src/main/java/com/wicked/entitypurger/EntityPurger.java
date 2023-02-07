@@ -33,7 +33,7 @@ public class EntityPurger
 {
     public static final String MODID = "entitypurger";
     public static final String NAME = "Entity Purger";
-    public static final String VERSION = "1.2.3";
+    public static final String VERSION = "1.2.4";
 
     private Side side;
     private MinecraftServer minecraftServer;
@@ -48,7 +48,7 @@ public class EntityPurger
     private FTBUtilitiesIntegration ftbUtilitiesIntegration;
 
     private void loadIntegrations(){
-        if(Loader.isModLoaded(FTBUtilitiesIntegration.MOD_ID)){
+        if(Loader.isModLoaded(FTBUtilitiesIntegration.MOD_ID) && configManager.isFtbUtilsIntegrationEnabled()){
             ftbUtilitiesIntegration = new FTBUtilitiesIntegration();
         }
     }

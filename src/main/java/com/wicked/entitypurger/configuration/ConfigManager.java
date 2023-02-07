@@ -28,17 +28,21 @@ public class ConfigManager {
     private final Logger logger;
     private final File configFileRaw;
 
-    private List<String> whitelist;
-    private List<String> blacklist;
+    private List<String> allowlist;
+    private List<String> blocklist;
     private boolean loggingEnabled = true;
     private int defaultThreshold = 20;
     private int blacklistedChunksNearPlayer = 3;
     private boolean claimedChunksAreBlacklisted = true;
 
+    private boolean ftbUtilsIntegration = true;
+
     private List<EntitySettings> orderedEntitySettings;
 
     private int checkTimeSeconds = 20;
     private boolean purgeTamedEntities = false;
+
+    private boolean purgeNamedEntities = false;
     private EntitySettings defaultEntitySettings;
 
     private boolean enabled = false;
@@ -107,10 +111,10 @@ public class ConfigManager {
         } catch(IOException userConfigError){
             try{
                 InputStream configDefaultRaw = getClass().getClassLoader().getResourceAsStream(DEFAULT_CONFIG_NAME);
-                return new ConfigLoadResult(false, objectMapper.readTree(configDefaultRaw), userConfigError.getMessage());
+                return new ConfigLoadResult(false, objectMapper.readTree(configDefaultRaw), userConfigError.toString());
             }catch(IOException defaultConfigError){
                 logger.fatal("Unable to load default config!");
-                return new ConfigLoadResult(false, null, defaultConfigError.getMessage());
+                return new ConfigLoadResult(false, null, defaultConfigError.toString());
             }
         }
     }
@@ -162,17 +166,19 @@ public class ConfigManager {
 
     private ConfigLoadResult loadDataFromConfiguration(JsonNode config) {
         try{
-            whitelist = getPropertyAsStringList(config, "whitelist");
-            blacklist = getPropertyAsStringList(config, "blacklist");
+            allowlist = getPropertyAsStringList(config, "allowlist");
+            blocklist = getPropertyAsStringList(config, "blocklist");
             defaultThreshold = safeGetInt(config,"defaultThreshold");
             loggingEnabled = safeGetBoolean(config,"logging");
             blacklistedChunksNearPlayer = safeGetInt(config, "blacklistedChunksNearPlayer");
             claimedChunksAreBlacklisted = safeGetBoolean(config, "claimedChunksAreBlacklisted");
+            ftbUtilsIntegration = safeGetBoolean(config, "ftbUtilsIntegration");
 
             orderedEntitySettings = getEntitySettings(config);
 
             checkTimeSeconds = safeGetInt(config, "checkTimeSeconds");
             purgeTamedEntities = safeGetBoolean(config, "purgeTamedEntities");
+            purgeNamedEntities = safeGetBoolean(config, "purgeNamedEntities");
 
             defaultEntitySettings = new EntitySettings(defaultThreshold, null, "*", false, false);
             return new ConfigLoadResult(true, config, null);
@@ -202,12 +208,12 @@ public class ConfigManager {
         lookMode = false;
     }
 
-    public List<String> getWhitelist() {
-        return whitelist;
+    public List<String> getAllowList() {
+        return allowlist;
     }
 
-    public List<String> getBlacklist() {
-        return blacklist;
+    public List<String> getBlocklist() {
+        return blocklist;
     }
 
     public int getCheckTimeSeconds() {
@@ -219,6 +225,10 @@ public class ConfigManager {
     }
 
     public EntitySettings getSettingsForEntity(String entityId) {
+        if(entityId == null || entityId.isEmpty()){
+            return defaultEntitySettings;
+        }
+
         for(EntitySettings entitySettings : orderedEntitySettings){
             Pattern pattern = Pattern.compile(entitySettings.getEntityId());
             Matcher matcher = pattern.matcher(entityId);
@@ -233,6 +243,10 @@ public class ConfigManager {
     public boolean canPurgeTamedEntities() {
         return purgeTamedEntities;
     }
+
+    public boolean canPurgeNamedEntities() { return purgeNamedEntities; }
+
+    public boolean isFtbUtilsIntegrationEnabled() { return ftbUtilsIntegration; }
 
     public int getBlacklistedChunksNearPlayer() {
         return blacklistedChunksNearPlayer;

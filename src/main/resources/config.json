@@ -1,13 +1,15 @@
 {
-    "version": "1.2.3",
+    "version": "1.2.4",
     "logging": false,
-    "whitelist": ["net.minecraft.entity.item.EntityXPOrb"],
-    "blacklist": [],
+    "allowlist": [],
+    "blocklist": [],
     "defaultThreshold": 20,
     "checkTimeSeconds": 20,
     "purgeTamedEntities": false,
+    "purgeNamedEntities": false,
     "blacklistedChunksNearPlayer": 2,
     "claimedChunksAreBlacklisted": true,
+    "ftbUtilsIntegration": true,
     "entitySettings": [
         {
             "entityId": "net.minecraft.entity.item.EntityXPOrb",

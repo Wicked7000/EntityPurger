@@ -29,6 +29,10 @@ public class EntityHelper {
         return entity instanceof EntityPlayer;
     }
 
+    public static boolean isNamedEntity(Entity entity){
+        return entity.hasCustomName();
+    }
+
     public static boolean isEntityTamed(Entity entity){
         if(entity instanceof EntityTameable){
             EntityTameable tameable = (EntityTameable)entity;
